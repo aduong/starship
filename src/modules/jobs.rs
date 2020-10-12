@@ -20,9 +20,9 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
     }
 
     let module_number = if num_of_jobs > config.threshold {
-        num_of_jobs.to_string()
+        Some(num_of_jobs.to_string())
     } else {
-        "".to_string()
+        None
     };
 
     let parsed = StringFormatter::new(config.format).and_then(|formatter| {
@@ -36,7 +36,9 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
                 _ => None,
             })
             .map(|variable| match variable {
-                "number" => Some(Ok(module_number.clone())),
+                "number" => module_number
+                    .as_ref()
+                    .map(|module_number| Ok(module_number)),
                 _ => None,
             })
             .parse(None)
@@ -102,6 +104,22 @@ mod test {
     }
 
     #[test]
+    fn config_2_job_2_conditional_formatting() -> io::Result<()> {
+        let actual = ModuleRenderer::new("jobs")
+            .config(toml::toml! {
+                [jobs]
+                    threshold = 2
+                    format = "(@$number )"
+            })
+            .jobs(1)
+            .collect();
+
+        let expected = None;
+        assert_eq!(expected, actual);
+        Ok(())
+    }
+
+    #[test]
     fn config_2_job_3() -> io::Result<()> {
         let actual = ModuleRenderer::new("jobs")
             .config(toml::toml! {
@@ -112,6 +130,22 @@ mod test {
             .collect();
 
         let expected = Some(format!("{} ", Color::Blue.bold().paint("✦3")));
+        assert_eq!(expected, actual);
+        Ok(())
+    }
+
+    #[test]
+    fn config_2_job_3_conditional_formatting() -> io::Result<()> {
+        let actual = ModuleRenderer::new("jobs")
+            .config(toml::toml! {
+                [jobs]
+                    threshold = 2
+                    format = "(@$number )"
+            })
+            .jobs(3)
+            .collect();
+
+        let expected = Some(String::from("@3 "));
         assert_eq!(expected, actual);
         Ok(())
     }
