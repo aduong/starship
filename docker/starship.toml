@@ -1,0 +1,3 @@
+[jobs]
+threshold = 3
+format = "(✦$number )"
